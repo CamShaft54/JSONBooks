@@ -1,8 +1,8 @@
 name: JSONBooks
-version: "1.0"
+version: "1.1"
 author: Camshaft54
 main: io.github.camshaft54.jsonbooks.JSONBooks
-api-version: "1.14"
+api-version: "1.16"
 commands:
   jsonbook:
     description: gives player a book based on the JSON data specified.

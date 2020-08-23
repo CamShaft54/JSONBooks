@@ -22,34 +22,45 @@ public class JSONBooksCommands implements CommandExecutor {
             return true;
         Player player = (Player) commandSender;
         if (args.length != 1) {
-            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <json>");
+            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <raw paste url>");
             return true;
         }
-
-        ItemStack payment = new ItemStack(JSONBooks.paymentItem);
-        int paymentAmount = JSONBooks.paymentAmount;
-        ItemStack fullPayment = new ItemStack(JSONBooks.paymentItem, paymentAmount);
+        // Define variables for first payment
+        ItemStack payment1 = new ItemStack(JSONBooks.paymentItem1);
+        int paymentAmount1 = JSONBooks.paymentAmount1;
+        ItemStack fullPayment1 = new ItemStack(JSONBooks.paymentItem1, paymentAmount1);
+        // Define variables for second payment
+        ItemStack payment2 = new ItemStack(JSONBooks.paymentItem2);
+        int paymentAmount2 = JSONBooks.paymentAmount2;
+        ItemStack fullPayment2 = new ItemStack(JSONBooks.paymentItem2, paymentAmount2);
+        // Create string that contains info about how much the json book costs.
+        String paymentString = paymentAmount1 + " x " + JSONBooks.paymentItemString1;
+        if (JSONBooks.paymentAmount2 != 0) {
+            paymentString += " and " + paymentAmount2 + " x " + JSONBooks.paymentItemString2;
+        }
         // Get JSON and check if it contains runCommand
         String json = getJSON(player, args[0],JSONBooks.cmdAllowed);
+        // If json is null from getJSON then don't give the player the book.
         if (json == null) {
             return true;
         }
-        // If the player is in creative mode they do not need to pay
-        if (player.getGameMode() == GameMode.CREATIVE || paymentAmount <= 0) {
+        // If player is in creative or payment is 0, they don't need to pay.
+        if (player.getGameMode() == GameMode.CREATIVE || paymentAmount1 <= 0) {
             giveBook(player, json);
             return true;
         }
-        // Check player's inventory for the payment
-        if (player.getInventory().containsAtLeast(payment, paymentAmount)) {
-            player.sendMessage(player.getDisplayName() + " paid " + paymentAmount + " x " + JSONBooks.paymentItemString + " for 1 book.");
+        // Check player's inventory for payment 1 and 2
+        if (player.getInventory().containsAtLeast(payment1, paymentAmount1) && player.getInventory().containsAtLeast(payment2, paymentAmount2)) {
+            player.sendMessage("JSONBooks: " + player.getDisplayName() + " paid " + paymentString + " for a book.");
             giveBook(player, json);
-            player.getInventory().removeItem(fullPayment);
+            player.getInventory().removeItem(fullPayment1);
+            player.getInventory().removeItem(fullPayment2);
             return true;
         }
-        player.sendMessage("Insufficient funds. The set payment for this command is " + JSONBooks.paymentAmount + " x " + JSONBooks.paymentItemString + ".");
+        player.sendMessage("JSONBooks: Insufficient funds. The set payment for this command is " + paymentString + ".");
         return true;
     }
-
+    // gets JSON from paste and checks for run_command (if specified)
     private String getJSON(Player player, String link, Boolean cmdAllowed) {
         String json = "";
         try {
@@ -64,11 +75,10 @@ public class JSONBooksCommands implements CommandExecutor {
         }
         return json;
     }
-
+    // gives player book with JSON
     private void giveBook(Player player, String json) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         Bukkit.getUnsafe().modifyItemStack(book, json);
-        player.sendMessage("JSONBooks: Gave " + player.getDisplayName() + " 1 JSON Book");
         player.getInventory().addItem(book);
     }
 }

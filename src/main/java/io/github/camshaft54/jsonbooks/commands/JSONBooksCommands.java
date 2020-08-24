@@ -46,6 +46,7 @@ public class JSONBooksCommands implements CommandExecutor {
         }
         // If player is in creative or payment is 0, they don't need to pay.
         if (player.getGameMode() == GameMode.CREATIVE || paymentAmount1 <= 0) {
+            player.sendMessage("JSONBooks: Gave " + player.getDisplayName() + " a book.");
             giveBook(player, json);
             return true;
         }

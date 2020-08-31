@@ -3,8 +3,17 @@ package io.github.camshaft54.jsonbooks;
 import io.github.camshaft54.jsonbooks.commands.JSONBooksCommands;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.StringUtil;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class JSONBooks extends JavaPlugin {
 
@@ -16,6 +25,24 @@ public class JSONBooks extends JavaPlugin {
     public static String paymentItemString1;
     public static String paymentItemString2;
     public static Boolean cmdAllowed;
+
+    public class Command implements TabCompleter {
+        private final String[] COMMANDS = {"", "preview"};
+        //create a static array of values
+
+        @Override
+        public List<String> onTabComplete(CommandSender commandSender, org.bukkit.command.Command command, String s, String[] strings) {
+            //create new array
+            final List<String> completions = new ArrayList<>();
+            //copy matches of first argument from list (ex: if first arg is 'm' will return just 'minecraft')
+            if (strings.length == 2) {
+                StringUtil.copyPartialMatches(strings[1], Arrays.asList(COMMANDS), completions);
+            }
+            //sort the list
+            Collections.sort(completions);
+            return completions;
+        }
+    }
 
     @Override
     public void onEnable() {
@@ -35,6 +62,7 @@ public class JSONBooks extends JavaPlugin {
         cmdAllowed = config.getBoolean("cmdAllowed");
         JSONBooksCommands commands = new JSONBooksCommands();
         getCommand("jsonbook").setExecutor(commands);
+        getCommand("jsonbook").setTabCompleter(new Command());
         getServer().getConsoleSender().sendMessage(ChatColor.DARK_BLUE + "[JSONBooks]: Plugin is enabled!");
     }
 

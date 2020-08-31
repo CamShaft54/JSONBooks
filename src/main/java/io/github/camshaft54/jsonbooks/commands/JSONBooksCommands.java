@@ -12,8 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import java.io.IOException;
-
 public class JSONBooksCommands implements CommandExecutor {
 
     @Override
@@ -22,7 +20,7 @@ public class JSONBooksCommands implements CommandExecutor {
             return true;
         Player player = (Player) commandSender;
         if (args.length > 2) {
-            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <raw paste url>");
+            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <raw paste url> (preview)");
             return true;
         }
 
@@ -41,9 +39,6 @@ public class JSONBooksCommands implements CommandExecutor {
         }
         // Get JSON and check if it contains runCommand
         String link = args[0];
-        if (link.length() > 21 && (link.startsWith("https://pastebin.com/") || link.startsWith("http://pastebin.com/"))) {
-            link = "https://pastebin.com/raw/" + link.substring(21);
-        }
         String json = getJSON(player, link, JSONBooks.cmdAllowed);
         // If json is null from getJSON then don't give the player the book.
         if (json == null) {
@@ -78,11 +73,15 @@ public class JSONBooksCommands implements CommandExecutor {
     // gets JSON from paste and checks for run_command (if specified)
     private String getJSON(Player player, String link, Boolean cmdAllowed) {
         String json;
+        if (link.length() > 21 && link.startsWith("https://pastebin.com/")) {
+            link = "https://pastebin.com/raw/" + link.substring(21);
+        }
         try {
             Document doc = Jsoup.connect(link).get();
             json = doc.body().text();
-        } catch (IOException e) {
+        } catch (Exception e) {
             player.sendMessage("JSONBooks: Invalid link. The correct format is https://www.pastebin.com/...");
+            e.printStackTrace();
             return null;
         }
         if (!cmdAllowed && json.contains("\"action\":\"run_command\"") && player.getGameMode() != GameMode.CREATIVE) {
@@ -94,6 +93,7 @@ public class JSONBooksCommands implements CommandExecutor {
     // gives player book with JSON
     private void giveBook(Player player, String json, Boolean preview) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
+        //noinspection deprecation
         Bukkit.getUnsafe().modifyItemStack(book, json);
         if (preview) {
             player.openBook(book);

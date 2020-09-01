@@ -9,6 +9,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -77,7 +78,9 @@ public class JSONBooksCommands implements CommandExecutor {
             link = "https://pastebin.com/raw/" + link.substring(21);
         }
         try {
-            Document doc = Jsoup.connect(link).get();
+            Connection connection = Jsoup.connect(link);
+            connection.userAgent("Mozilla/5.0");
+            Document doc = connection.get();
             json = doc.body().text();
         } catch (Exception e) {
             player.sendMessage("JSONBooks: Invalid link. The correct format is https://www.pastebin.com/...");

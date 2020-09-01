@@ -74,8 +74,8 @@ public class JSONBooksCommands implements CommandExecutor {
     // gets JSON from paste and checks for run_command (if specified)
     private String getJSON(Player player, String link, Boolean cmdAllowed) {
         String json;
-        if (link.length() > 21 && link.startsWith("https://pastebin.com/")) {
-            link = "https://pastebin.com/raw/" + link.substring(21);
+        if (link.length() > 21 && link.substring(0,21).matches("https://.astebin\\.com/")) {
+            link = link.substring(0, 21) + "raw/" + link.substring(21);
         }
         try {
             Connection connection = Jsoup.connect(link);

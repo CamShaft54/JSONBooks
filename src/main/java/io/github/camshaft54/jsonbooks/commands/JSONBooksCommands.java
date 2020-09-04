@@ -1,6 +1,7 @@
 package io.github.camshaft54.jsonbooks.commands;
 
 import io.github.camshaft54.jsonbooks.JSONBooks;
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -13,6 +14,8 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.util.Arrays;
+
 public class JSONBooksCommands implements CommandExecutor {
 
     @Override
@@ -21,55 +24,55 @@ public class JSONBooksCommands implements CommandExecutor {
         if (!(commandSender instanceof Player))
             return true;
         Player player = (Player) commandSender;
-        // if player specifies too many arguments, send error
-        if (args.length > 2) {
-            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <paste url> (preview)");
-            return true;
-        }
-
-        // define variables for first payment
-        ItemStack payment1 = new ItemStack(JSONBooks.paymentItem1);
-        int paymentAmount1 = JSONBooks.paymentAmount1;
-        ItemStack fullPayment1 = new ItemStack(JSONBooks.paymentItem1, paymentAmount1);
-        // define variables for second payment
-        ItemStack payment2 = new ItemStack(JSONBooks.paymentItem2);
-        int paymentAmount2 = JSONBooks.paymentAmount2;
-        ItemStack fullPayment2 = new ItemStack(JSONBooks.paymentItem2, paymentAmount2);
-        // create string that contains info about how much the json book costs.
-        String paymentString = paymentAmount1 + " x " + JSONBooks.paymentItemString1;
-        if (JSONBooks.paymentAmount2 != 0) {
-            paymentString += " and " + paymentAmount2 + " x " + JSONBooks.paymentItemString2;
-        }
-        // get JSON and check if it contains runCommand
-        String link = args[0];
-        String json = getJSON(player, link, JSONBooks.cmdAllowed);
-        // if json is null from getJSON then don't give the player the book
-        if (json == null) {
-            return true;
-        }
-        // if player is in creative or payment is 0, they don't need to pay
-        if (player.getGameMode() == GameMode.CREATIVE || paymentAmount1 <= 0) {
-            if (args.length == 2 && args[1].equals("preview")) {
-                giveBook(player, json, true);
+        if (command.getName().equals("jsonbook")) {
+            // if player specifies too many arguments, send error
+            if (args.length > 2) {
+                player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <paste url> (preview)");
                 return true;
             }
-            player.sendMessage("JSONBooks: Gave " + player.getDisplayName() + " a book.");
-            giveBook(player, json, false);
-            return true;
-        }
-        // check player's inventory for payment 1 and 2
-        if (player.getInventory().containsAtLeast(payment1, paymentAmount1) && player.getInventory().containsAtLeast(payment2, paymentAmount2)) {
-            if (args.length == 2 && args[1].equals("preview")) {
-                giveBook(player, json, true);
-                return true;
+            // get JSON and check if it contains runCommand
+            String link = args[0];
+            String json = getJSON(player, link, JSONBooks.cmdAllowed);
+            // if json is null from getJSON then don't give the player the book
+            if (json == null) {return true;}
+            // if player is in another game mode check for payment and take it
+            if (player.getGameMode() != GameMode.CREATIVE) {
+                ItemStack[] jsonBookPaymentItems = new ItemStack[JSONBooks.jsonBookPaymentTypes.length];
+                for (int i = 0; i < JSONBooks.jsonBookPaymentTypes.length; i++) {
+                    jsonBookPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.jsonBookPaymentTypes[i].toUpperCase()), JSONBooks.jsonBookPaymentAmounts[i]);
+                    if (!player.getInventory().containsAtLeast(jsonBookPaymentItems[i], JSONBooks.jsonBookPaymentAmounts[i])) {
+                        player.sendMessage("JSONBooks: Insufficient Funds, " + Arrays.toString(JSONBooks.jsonBookPaymentTypes) + " x " + Arrays.toString(JSONBooks.jsonBookPaymentAmounts) + " is required per book.");
+                        return true;
+                    }
+                    player.getInventory().removeItem(jsonBookPaymentItems[i]);
+                }
             }
-            player.sendMessage("JSONBooks: " + player.getDisplayName() + " paid " + paymentString + " for a book.");
-            giveBook(player, json, false);
-            player.getInventory().removeItem(fullPayment1);
-            player.getInventory().removeItem(fullPayment2);
+            // give player the book
+            giveBook(player, json, (args.length == 2 && args[1].equals("preview")));
             return true;
         }
-        player.sendMessage("JSONBooks: Insufficient funds. The set payment for this command is " + paymentString + ".");
+        // if command is /book
+        if (args.length != 1 || !StringUtils.isNumeric(args[0])) {
+            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /book <copies of book>");}
+        int amount = Integer.parseInt(args[0]);
+        ItemStack original = player.getInventory().getItemInMainHand().clone();
+        if (original.getType() != Material.WRITTEN_BOOK || (JSONBooks.writableBookCopying && original.getType() != Material.WRITABLE_BOOK)) {
+            player.sendMessage("JSONBooks: That's not a Written Book, silly!");
+            return true;
+        }
+        original.setAmount(amount);
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            ItemStack[] bookCopierPaymentItems = new ItemStack[JSONBooks.bookCopierPaymentTypes.length];
+            for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
+                bookCopierPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.bookCopierPaymentTypes[i].toUpperCase()), amount * JSONBooks.bookCopierPaymentAmounts[i]);
+                if (!player.getInventory().containsAtLeast(bookCopierPaymentItems[i], amount * JSONBooks.bookCopierPaymentAmounts[i])) {
+                    player.sendMessage("JSONBooks: Insufficient Funds, " + Arrays.toString(JSONBooks.bookCopierPaymentTypes) + " x " + Arrays.toString(JSONBooks.bookCopierPaymentAmounts) + " is required per book.");
+                    return true;
+                }
+                player.getInventory().removeItem(bookCopierPaymentItems[i]);
+            }
+        }
+        player.getInventory().addItem(original);
         return true;
     }
 
@@ -105,12 +108,8 @@ public class JSONBooksCommands implements CommandExecutor {
         //noinspection deprecation
         Bukkit.getUnsafe().modifyItemStack(book, json);
         // if player wants preview of book, show book
-        if (preview) {
-            player.openBook(book);
-        }
+        if (preview) {player.openBook(book);}
         // otherwise give player book
-        else {
-            player.getInventory().addItem(book);
-        }
+        else {player.getInventory().addItem(book);}
     }
 }

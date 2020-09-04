@@ -1,5 +1,5 @@
 name: JSONBooks
-version: "1.5.0"
+version: "2.0.0"
 author: Camshaft54
 main: io.github.camshaft54.jsonbooks.JSONBooks
 api-version: "1.16"
@@ -7,4 +7,6 @@ commands:
   jsonbook:
     description: gives player a book based on the JSON data specified.
     usage: /<command> <paste url> [preview]
-    aliases: book
+  book:
+    description: gives player copies of the book in main hand based on the quantity specified.
+    usage: /<command> <quantity of copies>

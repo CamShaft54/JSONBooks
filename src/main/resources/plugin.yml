@@ -1,5 +1,5 @@
 name: JSONBooks
-version: "2.0.0"
+version: "3.0.0"
 author: Camshaft54
 main: io.github.camshaft54.jsonbooks.JSONBooks
 api-version: "1.16"

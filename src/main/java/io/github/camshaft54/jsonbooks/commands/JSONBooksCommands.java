@@ -9,14 +9,21 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class JSONBooksCommands implements CommandExecutor {
+    public static Inventory gui;
+    public static String json;
+    public static Boolean previewEnabled;
+    public static ItemStack[] jsonBookPaymentItems;
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String label, String[] args) {
@@ -27,28 +34,65 @@ public class JSONBooksCommands implements CommandExecutor {
         if (command.getName().equals("jsonbook")) {
             // if player specifies too many arguments, send error
             if (args.length > 2) {
-                player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /jsonbook <paste url> (preview)");
                 return true;
             }
+
+            gui = Bukkit.getServer().createInventory(player, 18,"JSON Book");
+            ItemStack scute = new ItemStack(Material.SCUTE);
+            ItemMeta scuteMeta = scute.getItemMeta();
+            assert scuteMeta != null;
+            scuteMeta.setDisplayName("Click to purchase book");
+            scute.setItemMeta(scuteMeta);
+
+            ItemStack red = new ItemStack(Material.RED_DYE);
+            ItemMeta redMeta = red.getItemMeta();
+            assert redMeta != null;
+            redMeta.setDisplayName("Click to close GUI");
+            red.setItemMeta(redMeta);
+
+            ItemStack enchantedBook = new ItemStack(Material.ENCHANTED_BOOK);
+            ItemMeta enchantedBookMeta = enchantedBook.getItemMeta();
+            assert enchantedBookMeta != null;
+            enchantedBookMeta.setDisplayName("Click to open a preview of the book");
+            enchantedBook.setItemMeta(enchantedBookMeta);
+
+            ItemStack writtenBook = new ItemStack(Material.WRITTEN_BOOK);
+            ItemMeta writtenBookMeta = writtenBook.getItemMeta();
+            assert writtenBookMeta != null;
+            ArrayList<String> writtenBookLore = new ArrayList<>();
+            writtenBookLore.add("This GUI appeared because you ran the /jsonbook command.");
+            writtenBookLore.add("If you are in survival and your server administrator");
+            writtenBookLore.add("enabled it, you will see on the");
+            writtenBookLore.add("inventory line below this book a piece of paper.");
+            writtenBookLore.add("All items to the right of the paper are the payment");
+            writtenBookLore.add("items that you need to purchase a book.");
+            writtenBookLore.add("The quantity of each item needed is");
+            writtenBookLore.add("listed when you hover over each item.");
+            writtenBookMeta.setLore(writtenBookLore);
+            writtenBookMeta.setDisplayName("JSONBooks Command Info");
+            writtenBook.setItemMeta(writtenBookMeta);
+
+            ItemStack paper = new ItemStack(Material.PAPER);
+            ItemMeta paperMeta = paper.getItemMeta();
+            assert paperMeta != null;
+            paperMeta.setDisplayName("Payment required for one book ->");
+            paper.setItemMeta(paperMeta);
+            jsonBookPaymentItems = new ItemStack[JSONBooks.jsonBookPaymentTypes.length];
+            for (int i = 0; i < JSONBooks.jsonBookPaymentTypes.length; i++) {
+                jsonBookPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.jsonBookPaymentTypes[i].toUpperCase()), JSONBooks.jsonBookPaymentAmounts[i]);
+                gui.setItem(10+i,jsonBookPaymentItems[i]);
+            }
+            gui.setItem(1,writtenBook);
+            gui.setItem(3,enchantedBook);
+            gui.setItem(4,scute);
+            gui.setItem(5,red);
+            gui.setItem(9,paper);
+            player.openInventory(gui);
+
             // get JSON and check if it contains runCommand
             String link = args[0];
-            String json = getJSON(player, link, JSONBooks.cmdAllowed);
-            // if json is null from getJSON then don't give the player the book
-            if (json == null) {return true;}
-            // if player is in another game mode check for payment and take it
-            if (player.getGameMode() != GameMode.CREATIVE) {
-                ItemStack[] jsonBookPaymentItems = new ItemStack[JSONBooks.jsonBookPaymentTypes.length];
-                for (int i = 0; i < JSONBooks.jsonBookPaymentTypes.length; i++) {
-                    jsonBookPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.jsonBookPaymentTypes[i].toUpperCase()), JSONBooks.jsonBookPaymentAmounts[i]);
-                    if (!player.getInventory().containsAtLeast(jsonBookPaymentItems[i], JSONBooks.jsonBookPaymentAmounts[i])) {
-                        player.sendMessage("JSONBooks: Insufficient Funds, " + Arrays.toString(JSONBooks.jsonBookPaymentTypes) + " x " + Arrays.toString(JSONBooks.jsonBookPaymentAmounts) + " is required per book.");
-                        return true;
-                    }
-                    player.getInventory().removeItem(jsonBookPaymentItems[i]);
-                }
-            }
-            // give player the book
-            giveBook(player, json, (args.length == 2 && args[1].equals("preview")));
+            json = getJSON(player, link, JSONBooks.cmdAllowed);
+            previewEnabled = (args.length == 2 && args[1].equals("preview"));
             return true;
         }
         // if command is /book
@@ -103,7 +147,7 @@ public class JSONBooksCommands implements CommandExecutor {
     }
 
     // gives player book with JSON
-    private void giveBook(Player player, String json, Boolean preview) {
+    public static void giveBook(Player player, String json, Boolean preview) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         //noinspection deprecation
         Bukkit.getUnsafe().modifyItemStack(book, json);

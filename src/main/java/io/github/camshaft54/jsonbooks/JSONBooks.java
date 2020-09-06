@@ -1,7 +1,7 @@
 package io.github.camshaft54.jsonbooks;
 
 import io.github.camshaft54.jsonbooks.commands.JSONBooksCommands;
-import io.github.camshaft54.jsonbooks.events.JoinEvent;
+import io.github.camshaft54.jsonbooks.events.JSONBooksEvents;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -63,7 +63,7 @@ public class JSONBooks extends JavaPlugin {
         // adds TabCompleter to "/book"
         Objects.requireNonNull(getCommand("book")).setTabCompleter(new Command());
         // registers events class with the player join message
-        getServer().getPluginManager().registerEvents(new JoinEvent(), this);
+        getServer().getPluginManager().registerEvents(new JSONBooksEvents(), this);
         // gets local version of JSONBooks plugin
         local_version = getDescription().getVersion();
         // gets online version of JSONBooks plugin from pastebin

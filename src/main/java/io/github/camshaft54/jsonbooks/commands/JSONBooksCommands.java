@@ -37,25 +37,16 @@ public class JSONBooksCommands implements CommandExecutor {
                 return true;
             }
 
+            // get JSON and check if it contains runCommand
+            String link = args[0];
+            json = getJSON(player, link, JSONBooks.cmdAllowed);
+            previewEnabled = (args.length == 2 && args[1].equals("preview"));
+            if (json == null) return true;
+
+            // create JSONBook gui
             gui = Bukkit.getServer().createInventory(player, 18,"JSON Book");
-            ItemStack scute = new ItemStack(Material.SCUTE);
-            ItemMeta scuteMeta = scute.getItemMeta();
-            assert scuteMeta != null;
-            scuteMeta.setDisplayName("Click to purchase book");
-            scute.setItemMeta(scuteMeta);
 
-            ItemStack red = new ItemStack(Material.RED_DYE);
-            ItemMeta redMeta = red.getItemMeta();
-            assert redMeta != null;
-            redMeta.setDisplayName("Click to close GUI");
-            red.setItemMeta(redMeta);
-
-            ItemStack enchantedBook = new ItemStack(Material.ENCHANTED_BOOK);
-            ItemMeta enchantedBookMeta = enchantedBook.getItemMeta();
-            assert enchantedBookMeta != null;
-            enchantedBookMeta.setDisplayName("Click to open a preview of the book");
-            enchantedBook.setItemMeta(enchantedBookMeta);
-
+            // add info book to gui
             ItemStack writtenBook = new ItemStack(Material.WRITTEN_BOOK);
             ItemMeta writtenBookMeta = writtenBook.getItemMeta();
             assert writtenBookMeta != null;
@@ -72,51 +63,78 @@ public class JSONBooksCommands implements CommandExecutor {
             writtenBookMeta.setDisplayName("JSONBooks Command Info");
             writtenBook.setItemMeta(writtenBookMeta);
 
+            // add preview button to gui
+            ItemStack enchantedBook = new ItemStack(Material.ENCHANTED_BOOK);
+            ItemMeta enchantedBookMeta = enchantedBook.getItemMeta();
+            assert enchantedBookMeta != null;
+            enchantedBookMeta.setDisplayName("Click to open a preview of the book");
+            enchantedBook.setItemMeta(enchantedBookMeta);
+
+            // add purchase button to gui
+            ItemStack scute = new ItemStack(Material.SCUTE);
+            ItemMeta scuteMeta = scute.getItemMeta();
+            assert scuteMeta != null;
+            scuteMeta.setDisplayName("Click to purchase book");
+            scute.setItemMeta(scuteMeta);
+
+            // add cancel button to gui
+            ItemStack red = new ItemStack(Material.RED_DYE);
+            ItemMeta redMeta = red.getItemMeta();
+            assert redMeta != null;
+            redMeta.setDisplayName("Click to close GUI");
+            red.setItemMeta(redMeta);
+
+            // add payment info to gui
             ItemStack paper = new ItemStack(Material.PAPER);
             ItemMeta paperMeta = paper.getItemMeta();
             assert paperMeta != null;
             paperMeta.setDisplayName("Payment required for one book ->");
             paper.setItemMeta(paperMeta);
+
+            // add payment items to gui
             jsonBookPaymentItems = new ItemStack[JSONBooks.jsonBookPaymentTypes.length];
             for (int i = 0; i < JSONBooks.jsonBookPaymentTypes.length; i++) {
                 jsonBookPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.jsonBookPaymentTypes[i].toUpperCase()), JSONBooks.jsonBookPaymentAmounts[i]);
                 gui.setItem(10+i,jsonBookPaymentItems[i]);
             }
-            gui.setItem(1,writtenBook);
-            gui.setItem(3,enchantedBook);
-            gui.setItem(4,scute);
-            gui.setItem(5,red);
-            gui.setItem(9,paper);
-            player.openInventory(gui);
 
-            // get JSON and check if it contains runCommand
-            String link = args[0];
-            json = getJSON(player, link, JSONBooks.cmdAllowed);
-            previewEnabled = (args.length == 2 && args[1].equals("preview"));
+            // add all items created to gui and open gui
+            gui.setItem(0, writtenBook);
+            gui.setItem(1, enchantedBook);
+            gui.setItem(7, scute);
+            gui.setItem(8, red);
+            gui.setItem(9, paper);
+            player.openInventory(gui);
             return true;
         }
         // if command is /book
-        if (args.length != 1 || !StringUtils.isNumeric(args[0])) {
-            player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /book <copies of book>");}
-        int amount = Integer.parseInt(args[0]);
-        ItemStack original = player.getInventory().getItemInMainHand().clone();
-        if (original.getType() != Material.WRITTEN_BOOK || (JSONBooks.writableBookCopying && original.getType() != Material.WRITABLE_BOOK)) {
-            player.sendMessage("JSONBooks: That's not a Written Book, silly!");
+        else if (command.getName().equals("book")) {
+            if (args.length != 1 || !StringUtils.isNumeric(args[0])) {
+                player.sendMessage("JSONBooks: Invalid Arguments\nUsage: /book <copies of book>");
+            }
+            int amount = Integer.parseInt(args[0]);
+            ItemStack original = player.getInventory().getItemInMainHand().clone();
+            if (original.getType() != Material.WRITTEN_BOOK || (JSONBooks.writableBookCopying && original.getType() != Material.WRITABLE_BOOK)) {
+                player.sendMessage("JSONBooks: That's not a Written Book, silly!");
+                return true;
+            }
+            original.setAmount(amount);
+            if (player.getGameMode() != GameMode.CREATIVE) {
+                ItemStack[] bookCopierPaymentItems = new ItemStack[JSONBooks.bookCopierPaymentTypes.length];
+                for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
+                    bookCopierPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.bookCopierPaymentTypes[i].toUpperCase()), amount * JSONBooks.bookCopierPaymentAmounts[i]);
+                    if (!player.getInventory().containsAtLeast(bookCopierPaymentItems[i], amount * JSONBooks.bookCopierPaymentAmounts[i])) {
+                        player.sendMessage("JSONBooks: Insufficient Funds, " + Arrays.toString(JSONBooks.bookCopierPaymentTypes) + " x " + Arrays.toString(JSONBooks.bookCopierPaymentAmounts) + " is required per book.");
+                        return true;
+                    }
+                }
+                for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
+                    player.getInventory().removeItem(bookCopierPaymentItems[i]);
+                }
+            }
+            player.getInventory().addItem(original);
             return true;
         }
-        original.setAmount(amount);
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            ItemStack[] bookCopierPaymentItems = new ItemStack[JSONBooks.bookCopierPaymentTypes.length];
-            for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
-                bookCopierPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.bookCopierPaymentTypes[i].toUpperCase()), amount * JSONBooks.bookCopierPaymentAmounts[i]);
-                if (!player.getInventory().containsAtLeast(bookCopierPaymentItems[i], amount * JSONBooks.bookCopierPaymentAmounts[i])) {
-                    player.sendMessage("JSONBooks: Insufficient Funds, " + Arrays.toString(JSONBooks.bookCopierPaymentTypes) + " x " + Arrays.toString(JSONBooks.bookCopierPaymentAmounts) + " is required per book.");
-                    return true;
-                }
-                player.getInventory().removeItem(bookCopierPaymentItems[i]);
-            }
-        }
-        player.getInventory().addItem(original);
         return true;
     }
 
@@ -144,16 +162,5 @@ public class JSONBooksCommands implements CommandExecutor {
             return null;
         }
         return json;
-    }
-
-    // gives player book with JSON
-    public static void giveBook(Player player, String json, Boolean preview) {
-        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        //noinspection deprecation
-        Bukkit.getUnsafe().modifyItemStack(book, json);
-        // if player wants preview of book, show book
-        if (preview) {player.openBook(book);}
-        // otherwise give player book
-        else {player.getInventory().addItem(book);}
     }
 }

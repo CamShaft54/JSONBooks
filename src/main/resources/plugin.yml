@@ -6,7 +6,7 @@ api-version: "1.16"
 commands:
   jsonbook:
     description: gives player a book based on the JSON data specified.
-    usage: /<command> <paste url> [preview]
+    usage: /<command> <paste url>
   book:
     description: gives player copies of the book in main hand based on the quantity specified.
-    usage: /<command> <quantity of copies>
+    usage: /<command>

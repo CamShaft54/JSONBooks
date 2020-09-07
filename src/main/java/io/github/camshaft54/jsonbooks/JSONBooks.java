@@ -26,10 +26,11 @@ public class JSONBooks extends JavaPlugin {
     public static Boolean writableBookCopying;
     public static String online_version;
     public static String local_version;
+    public static Boolean consoleDebug;
 
     public static class Command implements TabCompleter {
         // list of TabCompleter commands
-        private final String[] jsonBookCommands = {"preview"};
+        private final String[] jsonBookCommands = {""};
         private final String[] bookCopierCommands = {""};
 
         @Override
@@ -72,7 +73,12 @@ public class JSONBooks extends JavaPlugin {
             online_version = doc.body().text();
         }
         catch(Exception e) {
-            e.printStackTrace();
+            if (consoleDebug) {
+                e.printStackTrace();
+            } else {
+                getServer().getConsoleSender().sendMessage(ChatColor.DARK_BLUE + "[JSONBooks]: Unable to get online version.");
+                online_version = local_version;
+            }
         }
         // if local version is outdated, send message to console.
         if (!local_version.equals(online_version)) {
@@ -89,6 +95,7 @@ public class JSONBooks extends JavaPlugin {
         config.addDefault("bookCopierPaymentTypes", new String[]{"book", "feather", "ink_sac"});
         config.addDefault("bookCopierPaymentAmounts", new int[]{1, 1, 1});
         config.addDefault("writableBookCopying", false);
+        config.addDefault("consoleDebug", false);
         config.options().copyDefaults(true);
         saveConfig();
         // assign config values to variables
@@ -98,5 +105,6 @@ public class JSONBooks extends JavaPlugin {
         bookCopierPaymentAmounts = toPrimitive(config.getIntegerList("bookCopierPaymentAmounts").toArray(new Integer[0]));
         cmdAllowed = config.getBoolean("cmdAllowed");
         writableBookCopying = config.getBoolean("writableBookCopying");
+        consoleDebug = config.getBoolean("consoleDebug");
     }
 }

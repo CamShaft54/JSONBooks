@@ -30,7 +30,7 @@ public class JSONBooksEvents implements Listener {
 
     @EventHandler
     public void onInventoryClick(final InventoryClickEvent e) {
-        if (e.getInventory() == JSONBooksCommands.gui) {
+        if (e.getInventory() == JSONBooksCommands.jsonGui) {
 
             e.setCancelled(true);
 
@@ -41,7 +41,7 @@ public class JSONBooksEvents implements Listener {
 
             final Player player = (Player) e.getWhoClicked();
 
-            if (Objects.requireNonNull(clickedItem.getItemMeta()).getDisplayName().equals("Click to purchase book")) {
+            if (Objects.requireNonNull(clickedItem.getItemMeta()).getDisplayName().equals("Click to complete purchase")) {
                 // if json is null from getJSON then don't give the player the book
                 if (json == null) return;
                 // if player is in another game mode check for payment and take it
@@ -65,6 +65,51 @@ public class JSONBooksEvents implements Listener {
             if (clickedItem.getItemMeta().getDisplayName().equals("Click to open a preview of the book")) {
                 giveBook(player, json, true);
             }
+        } else if (e.getInventory() == JSONBooksCommands.bookGui) {
+            e.setCancelled(true);
+
+            final ItemStack clickedItem = e.getCurrentItem();
+
+            // verify current item is not null
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            final Player player = (Player) e.getWhoClicked();
+
+            JSONBooksCommands.original.setAmount(JSONBooksCommands.amount);
+            if (Objects.requireNonNull(clickedItem.getItemMeta()).getDisplayName().equals("Click to complete purchase")) {
+                if (player.getGameMode() != GameMode.CREATIVE) {
+                    for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
+                        JSONBooksCommands.bookCopierPaymentItems[i] = new ItemStack(Material.valueOf(JSONBooks.bookCopierPaymentTypes[i].toUpperCase()), JSONBooksCommands.amount * JSONBooks.bookCopierPaymentAmounts[i]);
+                        if (!player.getInventory().containsAtLeast(JSONBooksCommands.bookCopierPaymentItems[i], JSONBooksCommands.amount * JSONBooks.bookCopierPaymentAmounts[i])) {
+                            player.sendMessage("JSONBooks: Insufficient Funds, see GUI for list of payment items needed.");
+                            return;
+                        }
+                    }
+                    for (int i = 0; i < JSONBooks.bookCopierPaymentTypes.length; i++) {
+                        player.getInventory().removeItem(JSONBooksCommands.bookCopierPaymentItems[i]);
+                    }
+                }
+                player.getInventory().addItem(JSONBooksCommands.original);
+            }
+            if (clickedItem.getItemMeta().getDisplayName().equals("Click to close GUI")) {
+                player.closeInventory();
+            }
+            if (clickedItem.getItemMeta().getDisplayName().equals("Add another copy")) {
+                JSONBooksCommands.amount += 1;
+                if (JSONBooksCommands.amount > 64) {
+                    player.sendMessage("JSONBooks: Maximum of 64 copies per purchase!");
+                    JSONBooksCommands.amount = 64;
+                }
+                updateAmount(JSONBooksCommands.amount);
+            }
+            if (clickedItem.getItemMeta().getDisplayName().equals("Remove a copy")) {
+                JSONBooksCommands.amount -= 1;
+                if (JSONBooksCommands.amount <= 0) {
+                    player.sendMessage("JSONBooks: Minimum of one copy required!");
+                    JSONBooksCommands.amount = 1;
+                }
+                updateAmount(JSONBooksCommands.amount);
+            }
         }
     }
 
@@ -77,5 +122,14 @@ public class JSONBooksEvents implements Listener {
         if (preview) {player.openBook(book);}
         // otherwise give player book
         else {player.getInventory().addItem(book);}
+    }
+
+    private void updateAmount(int amount) {
+        for (int i = 0; i < JSONBooksCommands.bookCopierPaymentItems.length; i++) {
+            ItemStack payment = JSONBooksCommands.bookGui.getItem(10+i);
+            assert payment != null;
+            payment.setAmount(amount * JSONBooks.bookCopierPaymentAmounts[i]);
+            JSONBooksCommands.bookGui.setItem(10+i, payment);
+        }
     }
 }
